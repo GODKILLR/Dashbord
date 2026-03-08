@@ -56,52 +56,19 @@ export default function AdminPanel({
 
     try {
       const base64 = await fileToBase64(file);
-      const ollamaApiKey = import.meta.env.VITE_OLLAMA_API_KEY;
 
-      const prompt = `Analyze this dashboard screenshot.
-1. Extract the total number of views.
-2. Extract the daily data points from the chart (date and views). Estimate the values if they are not explicitly written.
-Return ONLY a valid JSON object with this exact structure:
-{
-  "totalViews": 123456,
-  "dailyData": [
-    { "date": "Feb 10", "views": 5000 },
-    { "date": "Feb 11", "views": 15000 }
-  ]
-}
-Do not include markdown formatting like \`\`\`json.`;
-
-      const res = await fetch('https://api.ollama.com/v1/chat/completions', {
+      const res = await fetch('/api/extract-image', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${ollamaApiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'kimi-k2.5:cloud',
-          messages: [
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'image_url',
-                  image_url: { url: `data:${file.type};base64,${base64}` },
-                },
-                { type: 'text', text: prompt },
-              ],
-            },
-          ],
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: base64, mimeType: file.type }),
       });
 
       if (!res.ok) {
-        throw new Error(`Ollama API error: ${res.status} ${res.statusText}`);
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `Server error: ${res.status}`);
       }
 
-      const data = await res.json();
-      const rawText = data.choices?.[0]?.message?.content || '{}';
-      const jsonStr = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-      const parsed = JSON.parse(jsonStr);
+      const parsed = await res.json();
 
       if (parsed.totalViews) {
         setViews(parsed.totalViews.toString());
