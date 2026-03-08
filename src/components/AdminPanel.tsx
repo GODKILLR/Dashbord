@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Settings, Save, RefreshCw, UploadCloud, Calendar, Image as ImageIcon, Loader2, CheckCircle2 } from 'lucide-react';
-import { GoogleGenAI } from '@google/genai';
+
 import { format, subDays, parseISO } from 'date-fns';
 import { ExtractedDataPoint } from '../utils/data';
 
@@ -24,24 +24,24 @@ const fileToBase64 = (file: File): Promise<string> => {
   });
 };
 
-export default function AdminPanel({ 
-  totalViews: initialViews, 
-  minConversion: initialMin, 
+export default function AdminPanel({
+  totalViews: initialViews,
+  minConversion: initialMin,
   maxConversion: initialMax,
   rangeType: initialRangeType,
   startDate: initialStart,
   endDate: initialEnd,
   extractedData: initialExtractedData,
-  onSave 
+  onSave
 }: AdminPanelProps) {
   const [views, setViews] = useState(initialViews.toString());
   const [min, setMin] = useState(initialMin.toString());
   const [max, setMax] = useState(initialMax.toString());
-  
+
   const [rangeType, setRangeType] = useState(initialRangeType);
   const [customStart, setCustomStart] = useState(format(initialStart, 'yyyy-MM-dd'));
   const [customEnd, setCustomEnd] = useState(format(initialEnd, 'yyyy-MM-dd'));
-  
+
   const [isExtracting, setIsExtracting] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [extractedData, setExtractedData] = useState<ExtractedDataPoint[]>(initialExtractedData);
@@ -56,13 +56,9 @@ export default function AdminPanel({
 
     try {
       const base64 = await fileToBase64(file);
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const response = await ai.models.generateContent({
-        model: "gemini-3.1-pro-preview",
-        contents: {
-          parts: [
-            { inlineData: { mimeType: file.type, data: base64 } },
-            { text: `Analyze this dashboard screenshot. 
+      const ollamaApiKey = import.meta.env.VITE_OLLAMA_API_KEY;
+
+      const prompt = `Analyze this dashboard screenshot.
 1. Extract the total number of views.
 2. Extract the daily data points from the chart (date and views). Estimate the values if they are not explicitly written.
 Return ONLY a valid JSON object with this exact structure:
@@ -73,14 +69,40 @@ Return ONLY a valid JSON object with this exact structure:
     { "date": "Feb 11", "views": 15000 }
   ]
 }
-Do not include markdown formatting like \`\`\`json.` }
-          ]
-        }
+Do not include markdown formatting like \`\`\`json.`;
+
+      const res = await fetch('https://api.ollama.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${ollamaApiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'kimi-k2.5:cloud',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'image_url',
+                  image_url: { url: `data:${file.type};base64,${base64}` },
+                },
+                { type: 'text', text: prompt },
+              ],
+            },
+          ],
+        }),
       });
-      
-      const jsonStr = response.text?.replace(/```json/g, '').replace(/```/g, '').trim() || "{}";
+
+      if (!res.ok) {
+        throw new Error(`Ollama API error: ${res.status} ${res.statusText}`);
+      }
+
+      const data = await res.json();
+      const rawText = data.choices?.[0]?.message?.content || '{}';
+      const jsonStr = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
       const parsed = JSON.parse(jsonStr);
-      
+
       if (parsed.totalViews) {
         setViews(parsed.totalViews.toString());
       }
@@ -101,10 +123,10 @@ Do not include markdown formatting like \`\`\`json.` }
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     let finalStart = new Date();
     let finalEnd = new Date();
-    
+
     if (rangeType === '7days') {
       finalStart = subDays(new Date(), 7);
     } else if (rangeType === '30days') {
@@ -140,14 +162,14 @@ Do not include markdown formatting like \`\`\`json.` }
       </div>
 
       <form onSubmit={handleSave} className="space-y-8">
-        
+
         {/* Date Range Selection */}
         <div className="p-6 border border-black rounded-xl bg-gray-50">
           <h3 className="text-lg font-bold mb-4 flex items-center">
             <Calendar className="w-5 h-5 mr-2 text-gray-500" />
             Select Date Range
           </h3>
-          
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
             {[
               { id: '7days', label: 'Last 7 Days' },
@@ -159,11 +181,10 @@ Do not include markdown formatting like \`\`\`json.` }
                 key={option.id}
                 type="button"
                 onClick={() => setRangeType(option.id)}
-                className={`px-4 py-3 border rounded-lg text-sm font-medium transition-colors ${
-                  rangeType === option.id 
-                    ? 'border-black bg-black text-white' 
+                className={`px-4 py-3 border rounded-lg text-sm font-medium transition-colors ${rangeType === option.id
+                    ? 'border-black bg-black text-white'
                     : 'border-gray-300 bg-white text-gray-700 hover:border-black'
-                }`}
+                  }`}
               >
                 {option.label}
               </button>
@@ -200,19 +221,19 @@ Do not include markdown formatting like \`\`\`json.` }
             <ImageIcon className="w-5 h-5 mr-2 text-gray-500" />
             Giphy Data Source
           </h3>
-          
+
           <div className="space-y-6">
             {/* Upload Area */}
-            <div 
+            <div
               className="border-2 border-dashed border-gray-400 rounded-xl p-8 text-center hover:bg-gray-100 transition-colors cursor-pointer"
               onClick={() => fileInputRef.current?.click()}
             >
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleFileUpload} 
-                accept="image/*" 
-                className="hidden" 
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                accept="image/*"
+                className="hidden"
               />
               {isExtracting ? (
                 <div className="flex flex-col items-center justify-center space-y-3">
@@ -274,7 +295,7 @@ Do not include markdown formatting like \`\`\`json.` }
             <RefreshCw className="w-5 h-5 mr-2 text-gray-500" />
             Conversion Simulation
           </h3>
-          
+
           <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
