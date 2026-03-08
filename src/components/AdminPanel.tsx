@@ -76,7 +76,8 @@ export default function AdminPanel({
       if (parsed.dailyData && Array.isArray(parsed.dailyData) && parsed.dailyData.length > 0) {
         setExtractedData(parsed.dailyData);
       } else {
-        alert("Could not extract daily data points. We will use a random distribution instead.");
+        // Silently fallback to random distribution if the AI couldn't find a chart in the screenshot
+        console.warn("Could not extract daily data points. Falling back to random distribution.");
         setExtractedData([]);
       }
     } catch (error) {
