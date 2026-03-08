@@ -1,0 +1,5 @@
+{
+  "name": "Giphy Traffic Dashboard",
+  "description": "A dashboard for tracking Giphy views and estimating website traffic conversions.",
+  "requestFramePermissions": []
+}
