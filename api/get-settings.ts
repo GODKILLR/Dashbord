@@ -7,10 +7,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-    const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+    const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || Object.values(process.env).find(v => typeof v === 'string' && v.includes('upstash.io'));
+    const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || Object.values(process.env).find(v => typeof v === 'string' && v.length > 50 && !v.includes('upstash.io') && !v.includes('http'));
 
-    if (!url || !token) {
+    if (!url || !token || typeof url !== 'string' || typeof token !== 'string') {
       console.error('Redis credentials missing', { url: !!url, token: !!token });
       return res.status(500).json({ error: 'Database configuration missing' });
     }
