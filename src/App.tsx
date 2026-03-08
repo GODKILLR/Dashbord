@@ -23,17 +23,50 @@ export default function App() {
   // Generated data state
   const [dailyData, setDailyData] = useState<DailyData[]>([]);
   const [countryData, setCountryData] = useState<CountryData[]>([]);
+  
+  // Loading state
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
 
-  // Generate data on initial load or when settings change
+  // Fetch settings on initial load
   useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch('/api/get-settings');
+        if (res.ok) {
+          const data = await res.json();
+          if (data) {
+            setTotalViews(data.totalViews);
+            setMinConversion(data.minConversion);
+            setMaxConversion(data.maxConversion);
+            setRangeType(data.rangeType);
+            setStartDate(new Date(data.startDate));
+            setEndDate(new Date(data.endDate));
+            setExtractedData(data.extractedData || []);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load settings from DB:', err);
+      } finally {
+        setIsLoadingSettings(false);
+      }
+    };
+
+    fetchSettings();
+  }, []);
+
+  // Generate data when settings change
+  useEffect(() => {
+    if (isLoadingSettings) return; // Don't generate while loading
+    
     const newData = generateTrafficData(totalViews, startDate, endDate, minConversion, maxConversion, extractedData);
     setDailyData(newData);
     
     const totalTraffic = newData.reduce((sum, day) => sum + day.websiteTraffic, 0);
     setCountryData(generateCountryData(totalTraffic));
-  }, [totalViews, minConversion, maxConversion, startDate, endDate, extractedData]);
+  }, [totalViews, minConversion, maxConversion, startDate, endDate, extractedData, isLoadingSettings]);
 
-  const handleSaveAdmin = (views: number, min: number, max: number, type: string, start: Date, end: Date, extracted: ExtractedDataPoint[]) => {
+  const handleSaveAdmin = async (views: number, min: number, max: number, type: string, start: Date, end: Date, extracted: ExtractedDataPoint[]) => {
+    // Optimistically update local state immediately
     setTotalViews(views);
     setMinConversion(min);
     setMaxConversion(max);
@@ -41,7 +74,29 @@ export default function App() {
     setStartDate(start);
     setEndDate(end);
     setExtractedData(extracted);
-    setView('dashboard'); // Switch back to dashboard after saving
+    setView('dashboard'); // Switch back to dashboard quickly
+
+    // Save to Vercel KV database in the background
+    try {
+      await fetch('/api/save-settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          totalViews: views,
+          minConversion: min,
+          maxConversion: max,
+          rangeType: type,
+          startDate: start,
+          endDate: end,
+          extractedData: extracted,
+        }),
+      });
+    } catch (err) {
+      console.error('Failed to save settings to DB:', err);
+      alert('Failed to save settings to the database.');
+    }
   };
 
   const handleLogin = (role: 'admin' | 'client') => {
