@@ -7,6 +7,7 @@ interface LoginProps {
 
 export default function Login({ onLogin }: LoginProps) {
   const [activeTab, setActiveTab] = useState<'client' | 'admin'>('client');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
@@ -15,12 +16,12 @@ export default function Login({ onLogin }: LoginProps) {
     setError('');
 
     // Hardcoded passwords for prototype purposes
-    if (activeTab === 'admin' && password === 'admin123') {
+    if (activeTab === 'admin' && username === 'StarLabs' && password === 'StarLabsAdmin@123123') {
       onLogin('admin');
-    } else if (activeTab === 'client' && password === 'client123') {
+    } else if (activeTab === 'client' && username === 'SkyDog Social' && password === 'SkyDog1234') {
       onLogin('client');
     } else {
-      setError('Invalid password. Please try again.');
+      setError('Invalid username or password. Please try again.');
     }
   };
 
@@ -46,7 +47,7 @@ export default function Login({ onLogin }: LoginProps) {
           {/* Tabs */}
           <div className="flex space-x-2 mb-8 p-1 bg-gray-100 rounded-lg">
             <button
-              onClick={() => { setActiveTab('client'); setPassword(''); setError(''); }}
+              onClick={() => { setActiveTab('client'); setUsername(''); setPassword(''); setError(''); }}
               className={`flex-1 flex justify-center items-center py-2.5 text-sm font-medium rounded-md transition-colors ${
                 activeTab === 'client' ? 'bg-white text-black shadow-sm border border-gray-200' : 'text-gray-500 hover:text-black'
               }`}
@@ -55,7 +56,7 @@ export default function Login({ onLogin }: LoginProps) {
               Client
             </button>
             <button
-              onClick={() => { setActiveTab('admin'); setPassword(''); setError(''); }}
+              onClick={() => { setActiveTab('admin'); setUsername(''); setPassword(''); setError(''); }}
               className={`flex-1 flex justify-center items-center py-2.5 text-sm font-medium rounded-md transition-colors ${
                 activeTab === 'admin' ? 'bg-white text-black shadow-sm border border-gray-200' : 'text-gray-500 hover:text-black'
               }`}
@@ -66,6 +67,27 @@ export default function Login({ onLogin }: LoginProps) {
           </div>
 
           <form className="space-y-6" onSubmit={handleSubmit}>
+            <div>
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700">
+                Username
+              </label>
+              <div className="mt-1 relative rounded-md shadow-sm">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <User className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="username"
+                  name="username"
+                  type="text"
+                  required
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="focus:ring-black focus:border-black block w-full pl-10 sm:text-sm border-gray-300 rounded-lg py-3 border outline-none transition-colors"
+                  placeholder="Enter your username"
+                />
+              </div>
+            </div>
+
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 Password
@@ -82,7 +104,7 @@ export default function Login({ onLogin }: LoginProps) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="focus:ring-black focus:border-black block w-full pl-10 sm:text-sm border-gray-300 rounded-lg py-3 border outline-none transition-colors"
-                  placeholder={activeTab === 'admin' ? 'Hint: admin123' : 'Hint: client123'}
+                  placeholder="Enter your password"
                 />
               </div>
               {error && (
