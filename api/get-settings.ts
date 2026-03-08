@@ -18,6 +18,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const redis = new Redis({ url, token });
     const settings = await redis.get('dashboard_settings');
 
+    // Stop Vercel edge from caching this response
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
     if (!settings) {
       // Return null to let the frontend use its defaults if nothing is saved yet
       return res.status(200).json(null);

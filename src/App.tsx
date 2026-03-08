@@ -31,7 +31,12 @@ export default function App() {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const res = await fetch('/api/get-settings');
+        const res = await fetch('/api/get-settings', {
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
         if (res.ok) {
           const data = await res.json();
           if (data) {
