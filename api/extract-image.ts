@@ -31,7 +31,7 @@ Return ONLY a valid JSON object with this exact structure:
 Do not include markdown formatting like \`\`\`json.`;
 
   try {
-    const ollamaRes = await fetch('https://api.ollama.com/v1/chat/completions', {
+    const ollamaRes = await fetch('https://ollama.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
