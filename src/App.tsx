@@ -114,6 +114,15 @@ export default function App() {
                          rangeType === '90days' ? 'Last 90 Days' :
                          `${format(startDate, 'MMM dd, yyyy')} - ${format(endDate, 'MMM dd, yyyy')}`;
 
+  if (isLoadingSettings) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center space-y-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-black"></div>
+        <p className="text-gray-500 font-medium tracking-wide animate-pulse">Loading dashboard data...</p>
+      </div>
+    );
+  }
+
   if (!authRole) {
     return <Login onLogin={handleLogin} />;
   }
