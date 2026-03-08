@@ -83,7 +83,7 @@ export default function App() {
 
     // Save to Vercel KV database in the background
     try {
-      await fetch('/api/save-settings', {
+      const res = await fetch('/api/save-settings', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -98,9 +98,15 @@ export default function App() {
           extractedData: extracted,
         }),
       });
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('Save Settings Error Response:', errorText);
+        alert(`Failed to save settings to the database. Server said: ${errorText}`);
+      }
     } catch (err) {
       console.error('Failed to save settings to DB:', err);
-      alert('Failed to save settings to the database.');
+      // alert('Failed to save settings to the database.');
     }
   };
 
